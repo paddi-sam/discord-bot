@@ -1,1 +1,4 @@
 # Project reqs
+
+discord.py
+python-dotenv
