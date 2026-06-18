@@ -12,9 +12,8 @@ if TOKEN is None:
     raise ValueError("DISCORD_TOKEN is missing from your .env file")
 
 intents = discord.Intents.default()
-intents.voice_states = True
 intents.guilds = True
-intents.members = True
+intents.voice_states = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 

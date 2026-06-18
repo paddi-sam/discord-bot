@@ -1,4 +1,4 @@
-# Cog for sending a message when a voice call starts
+# Cog for logging voice channel activity
 
 import os
 from datetime import datetime
@@ -7,7 +7,7 @@ from discord.ext import commands
 
 
 class VoiceCallLogger(commands.Cog):
-    """Sends a message when a voice call starts in a server."""
+    """Logs when a voice call starts and when users leave voice channels."""
 
     def __init__(self, bot):
         self.bot = bot
@@ -15,18 +15,8 @@ class VoiceCallLogger(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        # Ignore leaving voice completely
-        if after.channel is None:
-            return
-
         # Ignore mute/deafen/stream changes while staying in the same voice channel
         if before.channel == after.channel:
-            return
-
-        voice_channel = after.channel
-
-        # Only log when the voice channel has gone from empty to 1 person
-        if len(voice_channel.members) != 1:
             return
 
         log_channel = self.bot.get_channel(self.log_channel_id)
@@ -37,14 +27,61 @@ class VoiceCallLogger(commands.Cog):
 
         current_time = datetime.now().strftime("%H:%M")
 
-        await log_channel.send(
-            f"{member.display_name} joined {voice_channel.name} at {current_time}"
-        )
+        # User joined a voice channel from not being in voice
+        if before.channel is None and after.channel is not None:
+            voice_channel = after.channel
 
-        print(
-            f"[CALL START] {member.display_name} joined "
-            f"{voice_channel.name} at {current_time}"
-        )
+            # Only log "call start" when the channel went from empty to 1 person
+            if len(voice_channel.members) == 1:
+                await log_channel.send(
+                    f"Call started in **{voice_channel.name}** by {member.display_name} at {current_time}"
+                )
+
+                print(
+                    f"[CALL START] {member.display_name} started "
+                    f"{voice_channel.name} at {current_time}"
+                )
+
+            return
+
+        # User left voice completely
+        if before.channel is not None and after.channel is None:
+            await log_channel.send(
+                f"{member.display_name} left **{before.channel.name}** at {current_time}"
+            )
+
+            print(
+                f"[VOICE LEAVE] {member.display_name} left "
+                f"{before.channel.name} at {current_time}"
+            )
+
+            return
+
+        # User moved between voice channels
+        if before.channel is not None and after.channel is not None:
+            old_channel = before.channel
+            new_channel = after.channel
+
+            # Log that they left the old channel
+            await log_channel.send(
+                f"{member.display_name} left **{old_channel.name}** and moved to **{new_channel.name}** at {current_time}"
+            )
+
+            print(
+                f"[VOICE MOVE] {member.display_name} moved from "
+                f"{old_channel.name} to {new_channel.name} at {current_time}"
+            )
+
+            # If the new channel now has 1 member, that means this move started a new call there
+            if len(new_channel.members) == 1:
+                await log_channel.send(
+                    f"Call started in **{new_channel.name}** by {member.display_name} at {current_time}"
+                )
+
+                print(
+                    f"[CALL START] {member.display_name} started "
+                    f"{new_channel.name} at {current_time}"
+                )
 
 
 async def setup(bot):
