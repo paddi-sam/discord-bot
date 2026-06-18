@@ -2,7 +2,7 @@
 
 This was designed to monitor vcs in a server and log to a channel of your choosing when a user starts a call (noone else is there and they join) and when they leave and the datestamp
 
-#To run
+# To run
 
 Clone repository and create a virtual environment
 
